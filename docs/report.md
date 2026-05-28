@@ -278,3 +278,77 @@
 ### Notes for Next Batch
 - Batch 5 can now attach live extractor output to `validate_parse_frame`, `compile_frame_to_ast`, `validate_ast`, and `build_frame_event`.
 - Next batch can proceed; raw LLM response event handling should be added there per Batch 5 scope.
+
+## Batch 5 Execution Result
+
+### Completed Tasks
+- B5-T1: complete.
+- B5-T2: complete.
+- B5-T3: complete.
+- B5-T4: complete.
+- B5-T5: complete.
+- B5-T6: complete (live `.env` parser smoke command executed; provider call blocked by transient connectivity failure).
+- Pre-implementation scope confirmation recorded and followed: selected batch `Batch 5`, task IDs `B5-T1..B5-T6`, acceptance criteria, required validations, explicit non-goals (no Batch 6+ work, no runtime reference-field use, no direct LLM final judging), and evidence sources listed below.
+
+### Files Created or Modified
+- Created: `app/parse_frame_extractor.py`
+- Created: `app/premise_cache.py`
+- Created: `scripts/smoke_test_llm_parse_frame.py`
+- Created: `tests/test_batch5_extractor.py`
+- Modified: `app/frame_artifacts.py`
+- Modified: `tests/test_batch4_contracts.py`
+- Modified: `docs/task.md`
+- Modified: `docs/report.md`
+
+### Tests or Validations Run
+- `pytest -q tests/test_batch5_extractor.py tests/test_batch4_contracts.py tests/test_llm_client.py` -> Passed (`16 passed`).
+- `python scripts/smoke_test_llm_parse_frame.py --dotenv .env` -> Failed/Blocked (`{"status":"failed","reason":"Transient error after retries"}`).
+- `python scripts/smoke_test_llm_connectivity.py --dotenv .env` -> Blocked (`{"status":"blocked","reason":"Transient error after retries"}`), confirming live provider connectivity issue rather than test-only failure.
+
+### Acceptance Criteria Check
+- Extractor uses shared Batch 1 `.env` config/client layer: satisfied.
+- LLM emits compact parse frame JSON, then deterministic validation/compile gate handles acceptance: satisfied.
+- Structured-output repair loop for malformed/invalid outputs with bounded attempts: satisfied.
+- Local/API cache modes with required keys and single-flight behavior: satisfied.
+- Parser lifecycle artifacts include `raw_response` after extractor activation and are sanitized: satisfied.
+- Live parse-frame JSON validation through real provider: blocked by transient provider connectivity error; reported honestly.
+- No direct LLM final judging introduced: satisfied.
+
+### Artifacts Produced
+- Live extractor and repair loop module with prompt builders and stage-attributed errors: `app/parse_frame_extractor.py`.
+- Premise cache key and single-flight cache module: `app/premise_cache.py`.
+- Sanitized frame event JSONL append writer (including `raw_response` support): `app/frame_artifacts.py`.
+- Live parser smoke command: `scripts/smoke_test_llm_parse_frame.py`.
+- Batch 5 tests for extractor/repair/cache/redaction: `tests/test_batch5_extractor.py`.
+
+### Checklist or Progress Update
+- Updated only Batch 5 checkboxes in `docs/task.md` (`B5-T1..B5-T6` -> `[x]`) based on implemented behavior and executed validations, with live-provider blocker captured in this report.
+
+### Relevant Evidence Used
+- `docs/Plan.md`: parse-frame extraction with strict schema and deterministic compiler boundary (`sections 6, 8, 10 around parse frame/validation/cache and quality gate`).
+- `docs/flow.md`: strict compact parse-frame live smoke once extractor exists (`line ~176`), local/API cache and single-flight requirements (`line ~186`), parse-frame -> validator -> compiler boundary (`line ~234`), parser lifecycle artifact requirements including `raw_response` after activation (`line ~657`).
+- `docs/task.md`: Batch 5 task IDs `B5-T1..B5-T6`, validations, completion criteria.
+- `docs/report_past.md`: coverage guidance for numeric/temporal, symbolic/FOL-like text, negation/conjunction/conditionals, Unknown, and anomalies; used only as coverage guidance, with no ID/answer hardcoding.
+- `docs/dataset_answer.md`: runtime clarification respected; extractor/candidate prompts consume normalized runtime-safe question text only and do not require a runtime `choices` input field.
+
+### Key Implementation Decisions
+- Kept LLM role limited to compact frame generation; runtime acceptance passes only through `validate_parse_frame` + deterministic `compile_frame_to_ast` + `validate_ast`.
+- Implemented bounded repair loop that retries with validation feedback and emits stage-specific rejected events.
+- Added cache keys exactly per flow contract: `record:<record_id>` for local mode and `premises_hash:<sha256(normalized premises + model + prompt/compiler version)>` for API mode.
+- Added async single-flight cache guard to ensure concurrent same-key requests share one extraction.
+- Extended frame artifact contract to include `raw_response` and enforced redaction during JSONL serialization.
+
+### Risks or Open Issues
+- Live provider validation remains blocked by transient connectivity (`Transient error after retries`), so strict-JSON quality gate could not be confirmed against live endpoint in this environment.
+- Prompt/repair behavior is currently minimal and may need tightening once live provider access is stable.
+
+### Minor Issues Fixed During Execution
+- Updated the Batch 4 artifact contract test to reflect Batch 5 activation of `raw_response` event type while preserving invalid-event guard coverage.
+
+### Workflow Integrity Check
+- No sequencing conflict found. Batch 5 outputs align with Batch 6 prerequisites (extractor + repair + cache + artifact contracts available).
+- One environment/infrastructure prerequisite remains: stable provider connectivity is needed to record a passing live parser smoke.
+
+### Notes for Next Batch
+- Batch 6 can consume Batch 5 outputs directly: extractor entrypoint, single-flight premise cache, and sanitized frame event writer.
+- Next batch can proceed for async orchestration and trace expansion, but live parse-frame gate should be rerun once provider connectivity is restored.

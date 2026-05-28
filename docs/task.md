@@ -398,37 +398,37 @@ Connect the Batch 1 LLM layer to parse-frame extraction, strict structured outpu
 - `docs/Plan.md:107`: LLM generates compact parse frames under strict schema.
 
 #### Tasks
-* [ ] B5-T1: Implement premise parse-frame extractor using the shared Batch 1 LLM client.
+* [x] B5-T1: Implement premise parse-frame extractor using the shared Batch 1 LLM client.
   * expected files: extractor module, prompts/templates, tests.
   * expected behavior: sends runtime-safe premise text and receives compact frame JSON.
   * validation: mock tests and live parse-frame smoke through `.env`.
   * source requirement: `docs/flow.md:234`, `docs/flow.md:176`.
   * notes: no direct final AST generation by the LLM.
-* [ ] B5-T2: Implement candidate parse-frame extraction using the same LLM layer.
+* [x] B5-T2: Implement candidate parse-frame extraction using the same LLM layer.
   * expected files: extractor module and tests.
   * expected behavior: extracts frames for MCQ options, Yes/No claims, symbolic-token candidates, and open-ended envelopes.
   * validation: live `.env` validation on a tiny runtime-safe candidate set plus fixtures.
   * source requirement: `docs/flow.md:472`.
   * notes: real LLM validation is mandatory.
-* [ ] B5-T3: Implement structured-output validation and repair loop.
+* [x] B5-T3: Implement structured-output validation and repair loop.
   * expected files: repair/validation module and tests.
   * expected behavior: invalid JSON/schema responses are repaired only through configured retry/repair limits; unrepaired responses get stage-specific errors.
   * validation: tests for malformed JSON, schema mismatch, ambiguous output, timeout, and repair exhaustion.
   * source requirement: `docs/flow.md:520`, `docs/flow.md:653`.
   * notes: repair settings come from `.env` or config.
-* [ ] B5-T4: Implement local and API premise cache modes with single-flight locking.
+* [x] B5-T4: Implement local and API premise cache modes with single-flight locking.
   * expected files: cache module and concurrency tests.
   * expected behavior: local eval key is `record:<record_id>`; API key is `premises_hash:<normalized premises-NL + model/prompt/compiler version>`; concurrent identical premise requests trigger one extraction.
   * validation: concurrency tests.
   * source requirement: `docs/flow.md:198`.
   * notes: include prompt/compiler version in cache fingerprint.
-* [ ] B5-T5: Write parser lifecycle artifacts including raw LLM response after extractor activation.
+* [x] B5-T5: Write parser lifecycle artifacts including raw LLM response after extractor activation.
   * expected files: `artifacts/frame_events.jsonl` writer and tests.
   * expected behavior: writes sanitized raw response, normalized frame, validated frame, compiled AST, and rejected events as applicable.
   * validation: artifact tests and secret-redaction checks.
   * source requirement: `docs/flow.md:657`.
   * notes: secrets must never appear in artifacts.
-* [ ] B5-T6: Add live parser smoke/quality gate through `.env`.
+* [x] B5-T6: Add live parser smoke/quality gate through `.env`.
   * expected files: live smoke command/test.
   * expected behavior: configured model returns strict compact frame JSON for a tiny runtime-safe prompt and frame validation passes.
   * validation: run real provider test or report credential/provider blocker.

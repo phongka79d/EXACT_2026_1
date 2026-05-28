@@ -173,5 +173,4 @@ def test_artifact_serialization_contract() -> None:
     assert '"event_type": "rejected"' in lines[-1]
 
     with pytest.raises(ArtifactContractError):
-        build_frame_event("raw_response", "premise_3", {"x": 1})
-
+        build_frame_event("invalid_event", "premise_3", {"x": 1})
