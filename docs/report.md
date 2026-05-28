@@ -352,3 +352,110 @@
 ### Notes for Next Batch
 - Batch 6 can consume Batch 5 outputs directly: extractor entrypoint, single-flight premise cache, and sanitized frame event writer.
 - Next batch can proceed for async orchestration and trace expansion, but live parse-frame gate should be rerun once provider connectivity is restored.
+
+## Batch 5 Repair Result
+
+### Summary
+- Repaired the live parse-frame prompt/repair contract so the LLM receives exact allowed frame kinds, compact valid schemas, and examples for both conditional rules and numeric facts.
+- Added explicit premise/candidate extraction wrappers so candidate repair uses the candidate schema instead of relying on callers to pass the right schema manually.
+- Strengthened repair prompts to carry the original runtime-safe source instructions forward after malformed JSON or validation failures.
+
+### Root Cause
+- The previous live prompt listed allowed frame kinds but did not provide enough exact schema/examples for the model to map conditional language into the approved `rule` frame kind, which allowed invalid outputs such as `conditional`.
+- A second non-identical live check showed numeric fact extraction was also under-specified: `numeric_value` requirements were not stated clearly enough, so the model could omit required attributes.
+- Repair prompts included schema restrictions but did not preserve the original source constraints after malformed output, creating risk of invented or drifted metadata on repair.
+
+### Files Changed
+- `app/parse_frame_extractor.py`
+- `scripts/smoke_test_llm_parse_frame.py`
+- `tests/test_batch5_extractor.py`
+- `docs/report.md`
+
+### Anti-Overfit Check
+- No frame kind was hardcoded as a result; invalid kinds are still rejected by `validate_parse_frame` and must pass the same repair/validation/compile path.
+- The added tests use different source IDs, premise text, candidate labels, malformed JSON, invalid premise kinds, and invalid candidate kinds.
+- The live no-overfit check used a different premise (`Linh has GPA 8.1.`) and validated a different valid frame kind (`fact`), not just the original conditional `rule` smoke case.
+
+### Validation Commands Run
+- `pytest -q tests\test_batch5_extractor.py` -> Passed (`9 passed`, pytest cache permission warning only).
+- `python scripts\smoke_test_llm_connectivity.py --dotenv .env` -> Passed.
+- `python scripts\smoke_test_llm_parse_frame.py --dotenv .env` -> Passed (`frame_kind=rule`, `source_id=premise_0001`).
+- `python scripts\smoke_test_llm_parse_frame.py --dotenv .env --premise-id 2 --premise-text "Linh has GPA 8.1."` -> initially failed with `numeric slot missing attribute`, then passed after prompt/schema repair (`frame_kind=fact`, `source_id=premise_0002`).
+- `pytest -q tests` -> Passed (`39 passed`, pytest cache permission warning only).
+
+### Live LLM Validation
+- Live LLM validation through `.env` passed for connectivity and parse-frame extraction.
+- Live parse-frame validation passed for both a conditional rule and a separate numeric fact case.
+
+### Tests
+- Full test suite passed: `39 passed`.
+- Regression coverage now includes invalid frame-kind repair, invalid kind rejection when repair is unavailable, malformed JSON repair preserving source context, candidate repair schema selection, and numeric-value prompt/schema clarity.
+
+### Runtime Artifacts
+- `artifacts/frame_events.jsonl` was appended by live smoke runs and contains sanitized parser lifecycle evidence.
+
+### Remaining Issues
+- None for Batch 5 acceptance.
+- Workspace pytest cache permission warnings persist, but they do not affect functional test results.
+
+### Task Progress Update
+- `docs/task.md` was not modified in this repair turn because Batch 5 task checkboxes were already marked complete and the current work did not add new task IDs.
+
+### Report Update
+- Appended this Batch 5 repair report to `docs/report.md`.
+
+### Final Status
+- ACCEPTED_READY_FOR_REVIEW
+
+## Batch 5 Repair Follow-Up Result
+
+### Summary
+- Addressed independent review rejection by removing smoke-overlapping examples from production prompts and adding context-specific frame validation for premise versus candidate extraction.
+- Premise extraction now accepts only `rule`, `fact`, `compound`, or `ambiguous` frames with matching premise metadata.
+- Candidate extraction now accepts only `claim` or `ambiguous` frames with matching candidate metadata.
+
+### Root Cause
+- Prompt examples reused the same premise texts and source IDs as live smoke checks, so live validation could be weakened by example copying.
+- Global frame validation allowed all valid frame kinds, but Batch 5 extraction contexts require narrower kind sets. Without a context gate, a globally valid premise frame could pass through candidate extraction, or a globally valid claim could pass through premise extraction.
+
+### Files Changed
+- `app/parse_frame_extractor.py`
+- `scripts/smoke_test_llm_parse_frame.py`
+- `tests/test_batch5_extractor.py`
+- `docs/report.md`
+
+### Anti-Overfit Check
+- Prompt examples now use generic non-smoke texts and example-only source IDs (`example_premise_9001`, `example_premise_9002`, `example_candidate_Z`).
+- Tests assert the production premise prompt does not include the smoke premise texts or smoke source IDs as examples.
+- Live smoke still validates real requested source metadata (`premise_0001`, `premise_0002`) through the context gate rather than by copying example metadata.
+
+### Validation Commands Run
+- `pytest -q tests\test_batch5_extractor.py` -> Passed (`11 passed`, pytest cache permission warning only).
+- `python scripts\smoke_test_llm_connectivity.py --dotenv .env` -> Passed.
+- `python scripts\smoke_test_llm_parse_frame.py --dotenv .env` -> initially failed once with `invalid compare operator`; prompt operator guidance was tightened, then passed (`frame_kind=rule`, `source_id=premise_0001`).
+- `python scripts\smoke_test_llm_parse_frame.py --dotenv .env --premise-id 2 --premise-text "Linh has GPA 8.1."` -> Passed (`frame_kind=fact`, `source_id=premise_0002`).
+- `pytest -q tests` -> Passed (`41 passed`, pytest cache permission warning only).
+
+### Live LLM Validation
+- Live LLM validation through `.env` passed for connectivity and parse-frame extraction.
+- Live parse-frame validation passed with prompt examples that do not contain the smoke premise texts.
+
+### Tests
+- Full test suite passed: `41 passed`.
+- Added regression coverage for candidate extraction repairing globally valid premise-style frames and premise extraction repairing globally valid candidate-style frames.
+
+### Runtime Artifacts
+- `artifacts/frame_events.jsonl` was appended by live smoke runs and remains expected untracked runtime evidence.
+
+### Remaining Issues
+- None for Batch 5 acceptance.
+- Workspace pytest cache permission warnings persist but do not affect functional validation.
+
+### Task Progress Update
+- `docs/task.md` was not modified; Batch 5 task state was already complete and no new checklist item exists.
+
+### Report Update
+- Appended this Batch 5 follow-up repair report to `docs/report.md`.
+
+### Final Status
+- ACCEPTED_READY_FOR_REVIEW

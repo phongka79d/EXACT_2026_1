@@ -12,7 +12,7 @@ if str(ROOT) not in sys.path:
 from app.config import ConfigError, load_llm_config
 from app.frame_artifacts import write_frame_events_jsonl
 from app.llm_client import OpenAICompatibleClient
-from app.parse_frame_extractor import build_premise_prompt, extract_frame_with_repair
+from app.parse_frame_extractor import extract_premise_frame
 from app.redaction import redact_obj
 
 
@@ -20,6 +20,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Live smoke test for strict compact parse-frame extraction.")
     parser.add_argument("--dotenv", default=".env")
     parser.add_argument("--artifacts", default="artifacts/frame_events.jsonl")
+    parser.add_argument(
+        "--premise-text",
+        default="If a student has GPA at least 7.0 then the student can change majors.",
+        help="Runtime-safe premise text to parse.",
+    )
+    parser.add_argument("--premise-id", type=int, default=1)
     args = parser.parse_args()
 
     try:
@@ -29,12 +35,13 @@ def main() -> int:
         return 2
 
     client = OpenAICompatibleClient(cfg)
-    prompt = build_premise_prompt(
-        premise_text="If a student has GPA at least 7.0 then the student can change majors.",
-        premise_id=1,
-    )
     try:
-        result = extract_frame_with_repair(client=client, prompt=prompt, source_id="premise_0001", repair_attempts=2)
+        result = extract_premise_frame(
+            client=client,
+            premise_text=args.premise_text,
+            premise_id=args.premise_id,
+            repair_attempts=2,
+        )
     except Exception as exc:
         print(json.dumps({"status": "failed", "reason": str(exc)}))
         return 1
