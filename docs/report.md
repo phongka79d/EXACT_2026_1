@@ -82,3 +82,69 @@
 ### Notes for Next Batch
 - Batch 2 can proceed using the shared Batch 1 config/client/redaction/smoke foundation.
 - Before any new live LLM validation, update `.env` to include all required keys from `.env.example`, then rerun both smoke commands to record a live pass.
+
+## Batch 2 Execution Result
+
+### Completed Tasks
+- B2-T1: complete
+- B2-T2: complete
+- B2-T3: complete
+- B2-T4: complete
+- B2-T5: complete
+
+### Files Created or Modified
+- Created: `app/dataset.py`
+- Created: `scripts/flatten_dataset.py`
+- Created: `tests/test_dataset.py`
+- Created: `data/processed/Logic_Based_Educational_Queries.flattened.json`
+- Created: `data/processed/Logic_Based_Educational_Queries.flattened.json.qc.json`
+- Modified: `docs/task.md`
+- Modified: `docs/report.md`
+
+### Tests or Validations Run
+- `pytest -q tests/test_dataset.py tests/test_config.py tests/test_redaction.py tests/test_llm_client.py` -> Passed (`17 passed`, 1 cache warning).
+- `python scripts/flatten_dataset.py --input data/raw/Logic_Based_Educational_Queries.json --output data/processed/Logic_Based_Educational_Queries.flattened.json` -> Passed.
+- Flattened artifact checks (`411` records -> `808` flattened samples) -> Passed.
+
+### Acceptance Criteria Check
+- Flattened samples deterministic and runtime-safe: satisfied.
+- Raw data unchanged: satisfied (only `data/processed/*` outputs created).
+- Separate `choices` merged into question, not runtime field: satisfied.
+- Runtime inference sanitization excludes reference-only fields: satisfied.
+- Dataset anomaly and MCQ extractability diagnostics emitted: satisfied.
+
+### Artifacts Produced
+- Flattening + canonicalization + sanitizer + QC module: `app/dataset.py`.
+- Flattening CLI command: `scripts/flatten_dataset.py`.
+- Flattened dataset artifact: `data/processed/Logic_Based_Educational_Queries.flattened.json`.
+- QC/diagnostic artifact: `data/processed/Logic_Based_Educational_Queries.flattened.json.qc.json`.
+- Batch 2 test suite: `tests/test_dataset.py`.
+
+### Checklist or Progress Update
+- Updated `docs/task.md` B2 checkboxes for B2-T1..B2-T5 from `[ ]` to `[x]` only.
+
+### Relevant Evidence Used
+- `docs/Plan.md`: sections covering flattening (`CR-001`), `choices` canonicalization (`CR-002`), runtime-safe field boundary, and MCQ extractability diagnostics.
+- `docs/flow.md`: flatten-before-eval requirement, runtime field set (`sample_id`, `record_id`, `question_id`, `premises-NL`, `question`), and loader/sanitizer boundary.
+- `docs/task.md`: Batch 2 task IDs B2-T1..B2-T5 and Batch 2 acceptance/validation checklist.
+- `docs/report_past.md`: evidence for `411/808`, record `132` separate `choices`, mismatch records `34,57,146,334,376-382`, and conflict case `record=37,q=1`.
+- `docs/dataset_answer.md`: explicit clarification to merge `choices` into `question` and not pass runtime `choices`.
+
+### Key Implementation Decisions
+- Kept flattened samples rich (runtime + reference fields) for offline use, and enforced runtime-safe reads through explicit sanitizer output.
+- Canonicalized separate choices by appending stable `A./B./C./D.` lines into question text without record-specific branching.
+- Added QC tags on flattened samples (`premise_count_mismatch`, `answer_explanation_conflict_signal`, `mcq_options_missing`) and separated diagnostic aggregation in QC report output.
+
+### Risks or Open Issues
+- Current answer/explanation conflict detection is heuristic and may include false positives; tag is diagnostic only and does not alter runtime behavior.
+- QC report currently observed `mcq_options_missing` for two samples (`record 138`, `record 141`); downstream batch should decide fallback policy handling.
+
+### Minor Issues Fixed During Execution
+- None.
+
+### Workflow Integrity Check
+- No batch-sequencing conflict identified. Batch 2 outputs align with Batch 3 dependency on normalized question text and runtime-safe loader discipline.
+
+### Notes for Next Batch
+- Batch 3 can consume `data/processed/Logic_Based_Educational_Queries.flattened.json` and `sanitize_runtime_sample` for runtime-safe candidate extraction input.
+- Batch 3 should reuse `extract_mcq_options` for canonical inline option extraction and preserve QC tags as diagnostic-only metadata.

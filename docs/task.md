@@ -202,31 +202,31 @@ Create the local evaluation data path that converts raw multi-question records i
 - `docs/report_past.md:84`: `CR-001`; `docs/report_past.md:90`: `CR-002`.
 
 #### Tasks
-* [ ] B2-T1: Implement raw-to-flattened conversion for one sample per question.
+* [x] B2-T1: Implement raw-to-flattened conversion for one sample per question.
   * expected files: flattening script/module, processed output path, tests.
   * expected behavior: raw records remain unchanged; local IDs are stable and deterministic.
   * validation: sample count matches local evidence and ordering is stable.
   * source requirement: `docs/flow.md:71`, `docs/report_past.md:5`.
   * notes: preserve `record_id` and `question_id` for local orchestration only.
-* [ ] B2-T2: Canonicalize separate raw `choices` into appended inline `A./B./C./D.` question lines.
+* [x] B2-T2: Canonicalize separate raw `choices` into appended inline `A./B./C./D.` question lines.
   * expected files: flattening module and regression fixture/test.
   * expected behavior: record `132`-style data becomes extractable from `question`; no runtime `choices` field is emitted.
   * validation: regression test for a `record=132,q=0`-style sample.
   * source requirement: `docs/Plan.md:72`, `docs/dataset_answer.md:20`.
   * notes: use stable option order and preserve option text.
-* [ ] B2-T3: Implement runtime-safe loader and sanitizer.
+* [x] B2-T3: Implement runtime-safe loader and sanitizer.
   * expected files: loader/sanitizer module and tests.
   * expected behavior: runtime inference path receives only `premises-NL` and `question`, with local IDs allowed only for local evaluation orchestration.
   * validation: tests fail if runtime logic reads `premises-FOL`, `answer`, `explanation`, `idx`, or raw `choices`.
   * source requirement: `docs/Plan.md:94`, `docs/flow.md:133`.
   * notes: reference fields remain available only to offline scoring/error analysis code.
-* [ ] B2-T4: Add dataset anomaly and QC tagging during flattening/loading.
+* [x] B2-T4: Add dataset anomaly and QC tagging during flattening/loading.
   * expected files: QC module/artifact writer and tests.
   * expected behavior: premise-count mismatches, option extraction risk, answer/explanation conflict signals, and malformed records are tagged without hard-failing structurally usable runtime samples.
   * validation: tests cover records like `376-382` and `37,q=1` through fixtures or slices.
   * source requirement: `docs/report_past.md:33`, `docs/report_past.md:120`.
   * notes: tags must not influence runtime answer generation.
-* [ ] B2-T5: Add post-flattening MCQ extractability diagnostics.
+* [x] B2-T5: Add post-flattening MCQ extractability diagnostics.
   * expected files: diagnostic command/artifact and tests.
   * expected behavior: MCQ-labeled answers have extractable options after flattening; missing options produce warning/error artifacts.
   * validation: record `132`-style regression and inline-option samples.
