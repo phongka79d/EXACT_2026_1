@@ -121,43 +121,43 @@ Establish the shared `.env`-based LLM configuration, validation, client wrapper,
 - `docs/Plan.md:23`: model calls use `.env` configuration and open-source `<=8B` model constraint.
 
 #### Tasks
-* [ ] B1-T1: Define required runtime `.env` keys and validation rules.
+* [x] B1-T1: Define required runtime `.env` keys and validation rules.
   * expected files: `.env.example`, config module, config tests.
   * expected behavior: missing, empty, invalid, or unsupported values fail with actionable errors and no secret leakage.
   * validation: run config validation tests and a manual missing-key check.
   * source requirement: `docs/flow.md:168`, `docs/Plan.md:23`.
   * notes: include timeout, concurrency, retry, backoff, and generation controls as environment-driven settings; do not hardcode provider, model, base URL, API key, timeout, concurrency, or retry values.
-* [ ] B1-T2: Implement safe `.env` loading and secret redaction utilities.
+* [x] B1-T2: Implement safe `.env` loading and secret redaction utilities.
   * expected files: config/redaction module and tests.
   * expected behavior: API keys, auth headers, and secret-bearing URLs are never printed or persisted.
   * validation: tests must cover exact secret values, bearer headers, query-token URLs, and nested error payloads.
   * source requirement: `docs/flow.md:161`, `docs/flow.md:182`.
   * notes: logs may show redacted host/model identifiers only when safe.
-* [ ] B1-T3: Implement a minimal OpenAI-compatible LLM client wrapper using only validated `.env` values.
+* [x] B1-T3: Implement a minimal OpenAI-compatible LLM client wrapper using only validated `.env` values.
   * expected files: LLM client module and tests.
   * expected behavior: wrapper sends requests to configured endpoint/model, applies timeout, uses configured generation controls, and returns a normalized response shape.
   * validation: mock client tests plus static check that no provider/model/base URL is hardcoded.
   * source requirement: `docs/flow.md:12`, `docs/flow.md:178`.
   * notes: production/runtime code must not silently switch models.
-* [ ] B1-T4: Add retry and error handling around the LLM client.
+* [x] B1-T4: Add retry and error handling around the LLM client.
   * expected files: LLM client/retry module and tests.
   * expected behavior: transient failures retry with configured exponential backoff/jitter; authentication/config errors fail fast; timeout errors are stage-attributed.
   * validation: mock tests for transient, permanent, timeout, and malformed response cases.
   * source requirement: `docs/flow.md:186`.
   * notes: retry settings must come from `.env`.
-* [ ] B1-T5: Add live synchronous smoke test using the real configured provider.
+* [x] B1-T5: Add live synchronous smoke test using the real configured provider.
   * expected files: smoke script or test command and documentation in developer-facing docs if present.
   * expected behavior: sends a tiny runtime-safe prompt using only non-reference content, verifies auth/model availability/basic response shape, and redacts secrets.
   * validation: future agents must run the live command with `.env` present and record pass/blocker honestly.
   * source requirement: `docs/flow.md:176`.
   * notes: blocked credentials are acceptable only when reported as blocked, not passed.
-* [ ] B1-T6: Add live async smoke test.
+* [x] B1-T6: Add live async smoke test.
   * expected files: async smoke script/test.
   * expected behavior: concurrently sends a small number of runtime-safe requests using configured concurrency, timeout, and retry settings; validates result ordering or stable aggregation.
   * validation: run against the real provider through `.env`.
   * source requirement: `docs/flow.md:186`.
   * notes: this is the required foundation for later async batch processing.
-* [ ] B1-T7: Document exact instructions for future agents to run the live connection tests.
+* [x] B1-T7: Document exact instructions for future agents to run the live connection tests.
   * expected files: README/dev note if project docs exist, or script help text.
   * expected behavior: future agents can identify required env keys, run sync and async smoke tests, and know how to report credential blockers.
   * validation: command help or documentation review.
