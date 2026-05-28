@@ -332,31 +332,31 @@ Define strict parse-frame and typed AST contracts, plus deterministic frame-to-A
 - `docs/flow.md:503`: AST validation and normalization checks.
 
 #### Tasks
-* [ ] B4-T1: Define parse-frame schema with discriminated kinds and required metadata.
+* [x] B4-T1: Define parse-frame schema with discriminated kinds and required metadata.
   * expected files: schema definitions and schema tests.
   * expected behavior: supports `rule`, `fact`, `claim`, `compound`, and `ambiguous`; enforces `source_id`, `source_text`, and premise/candidate metadata where appropriate.
   * validation: valid/invalid schema fixtures.
   * source requirement: `docs/flow.md:250`.
   * notes: ambiguous frames must not compile into facts/rules/claims.
-* [ ] B4-T2: Define typed AST schema.
+* [x] B4-T2: Define typed AST schema.
   * expected files: AST type/schema module and tests.
   * expected behavior: supports `pred`, `not`, `and`, `or`, `implies`, `forall`, `exists`, `compare`, `arith`, `num_ref`, and numeric literals.
   * validation: schema tests for required fields and invalid nodes.
   * source requirement: `docs/flow.md:463`.
   * notes: root source metadata is mandatory.
-* [ ] B4-T3: Implement deterministic frame-to-AST compiler for validated frames.
+* [x] B4-T3: Implement deterministic frame-to-AST compiler for validated frames.
   * expected files: compiler module and tests.
   * expected behavior: converts rules, facts, claims, numeric slots, and compounds structurally without guessing from source text.
   * validation: fixture-based compiler tests.
   * source requirement: `docs/flow.md:435`.
   * notes: compiler must preserve implication direction and explicit negation.
-* [ ] B4-T4: Add AST validation checks.
+* [x] B4-T4: Add AST validation checks.
   * expected files: AST validator and tests.
   * expected behavior: rejects missing metadata, unbound variables, unstable arity, invalid numeric operands, and malformed nested implications.
   * validation: validator tests for positive and negative cases.
   * source requirement: `docs/flow.md:503`.
   * notes: repair loop is not implemented in this batch.
-* [ ] B4-T5: Add parser/compiler event artifact contracts.
+* [x] B4-T5: Add parser/compiler event artifact contracts.
   * expected files: artifact schema/helper and tests.
   * expected behavior: supports `normalized_frame`, `validated_frame`, `compiled_ast`, and `rejected` events before live extractor exists.
   * validation: artifact serialization tests.

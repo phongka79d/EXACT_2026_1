@@ -210,3 +210,71 @@
 ### Notes for Next Batch
 - Batch 4 can consume Batch 3 candidate envelopes (`label`, `candidate_label`, `text`, `source_text`) and `question_family` metadata to define strict parse-frame and AST contracts.
 - Next batch can proceed without additional blockers.
+
+## Batch 4 Execution Result
+
+### Completed Tasks
+- B4-T1: complete
+- B4-T2: complete
+- B4-T3: complete
+- B4-T4: complete
+- B4-T5: complete
+
+### Files Created or Modified
+- Created: `app/parse_frames.py`
+- Created: `app/ast_contracts.py`
+- Created: `app/frame_compiler.py`
+- Created: `app/frame_artifacts.py`
+- Created: `tests/test_batch4_contracts.py`
+- Modified: `docs/task.md`
+- Modified: `docs/report.md`
+
+### Tests or Validations Run
+- `pytest -q tests/test_batch4_contracts.py` -> Passed (`6 passed`).
+- `pytest -q tests` -> Passed (`30 passed`).
+
+### Acceptance Criteria Check
+- Frame schema supports `rule`, `fact`, `claim`, `compound`, `ambiguous` with required metadata checks: satisfied.
+- AST schema supports required node set (`pred`, `not`, `and`, `or`, `implies`, `forall`, `exists`, `compare`, `arith`, `num_ref`, numeric literals): satisfied.
+- Deterministic frame-to-AST compiler implemented for validated fixture frames only (rules/facts/claims/compound/numeric slots), structural-only: satisfied.
+- Ambiguous/lossy frames are rejected and not compiled into facts/rules/claims: satisfied.
+- AST validation includes metadata, unbound-variable, arity-stability, numeric-operand, and nested-implication checks: satisfied.
+- Parser/compiler event artifact contracts implemented for `normalized_frame`, `validated_frame`, `compiled_ast`, `rejected`: satisfied.
+
+### Artifacts Produced
+- Parse-frame schema validator: `app/parse_frames.py`.
+- Typed AST schema + validator: `app/ast_contracts.py`.
+- Deterministic frame-to-AST compiler: `app/frame_compiler.py`.
+- Parser/compiler artifact event helper + JSONL serialization: `app/frame_artifacts.py`.
+- Fixture-based Batch 4 validation tests: `tests/test_batch4_contracts.py`.
+
+### Checklist or Progress Update
+- Updated only Batch 4 checkboxes in `docs/task.md`: B4-T1..B4-T5 moved from `[ ]` to `[x]`.
+
+### Relevant Evidence Used
+- `docs/Plan.md`: sections 6, 8, 10 (parse-frame-before-AST direction, deterministic compiler ownership, contract validation scope).
+- `docs/flow.md`: section 4 (frame kinds/metadata), section 6 (compiler responsibilities and deterministic boundary), section 8 (AST validation checks), section 12 (`frame_events` event kinds before live extractor).
+- `docs/task.md`: Batch 4 task IDs B4-T1..B4-T5 and acceptance criteria.
+- `docs/report_past.md`: CR-004/CR-005/CR-006 phenomena reflected as schema/compiler fixtures (numeric slots, negation, conjunction/disjunction, conditionals, symbolic option content), without using runtime reference fields.
+- `docs/dataset_answer.md`: not directly required for Batch 4 scope.
+
+### Key Implementation Decisions
+- Kept Batch 4 boundaries strict by introducing separate modules for frame validation, AST contracts, compiler, and artifact contracts.
+- Compiler is structural-only and compiles only explicit frame slots; it does not infer missing semantics from source text.
+- Enforced explicit rejection for `ambiguous` frames and lossy `entity_relation` slots missing required roles.
+- Root AST metadata is mandatory and preserved through compile output (`source_id`, `source_text`, plus `premise_id`/`candidate_label` when present).
+
+### Risks or Open Issues
+- Current quantifier variable handling expects explicit var nodes in AST terms; broader normalization behavior is deferred to later batches.
+- Predicate name normalization to snake_case is intentionally not introduced in Batch 4 to avoid scope creep into Batch 7 normalization behavior.
+- Existing workspace pytest-cache permission warning persists; it does not affect functional test pass results.
+
+### Minor Issues Fixed During Execution
+- None.
+
+### Workflow Integrity Check
+- No workflow integrity issue identified. Batch 4 outputs match Batch 5 prerequisites (strict frame/AST contracts, deterministic compiler, and pre-live artifact event schema).
+
+### Notes for Next Batch
+- Batch 5 can now attach live extractor output to `validate_parse_frame`, `compile_frame_to_ast`, `validate_ast`, and `build_frame_event`.
+- Next batch can proceed; raw LLM response event handling should be added there per Batch 5 scope.
