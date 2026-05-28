@@ -19,6 +19,7 @@ from app.parse_frame_extractor import (
     extract_premise_frame,
 )
 from app.premise_cache import PremiseFrameCache, build_api_premise_cache_key, build_local_premise_cache_key
+from scripts.smoke_test_llm_parse_frame import validate_live_parse_frame_result
 
 
 def _cfg() -> LLMConfig:
@@ -303,6 +304,76 @@ def test_premise_extraction_repairs_globally_valid_candidate_frame() -> None:
     )
     assert calls["n"] == 2
     assert out["frame"]["kind"] == "fact"
+
+
+def test_threshold_rule_repairs_numeric_value_to_numeric_condition() -> None:
+    calls = {"n": 0}
+    source_text = "If Chen has GPA at least 6.5 then Chen may enroll."
+
+    def transport(url, payload, headers, timeout):
+        calls["n"] += 1
+        prompt = payload["messages"][0]["content"]
+        if calls["n"] == 1:
+            frame = {
+                "kind": "rule",
+                "source_id": "premise_0006",
+                "source_text": source_text,
+                "premise_id": 6,
+                "if": [{"type": "numeric_value", "entity": "Chen", "attribute": "gpa", "value": 6.5}],
+                "then": [{"type": "predicate", "name": "may_enroll", "args": ["Chen"]}],
+                "warnings": [],
+            }
+            return {"choices": [{"message": {"content": json.dumps(frame)}}]}
+        assert "numeric threshold requirements must use numeric_condition" in prompt
+        frame = {
+            "kind": "rule",
+            "source_id": "premise_0006",
+            "source_text": source_text,
+            "premise_id": 6,
+            "if": [{"type": "numeric_condition", "entity": "Chen", "attribute": "gpa", "op": ">=", "value": 6.5}],
+            "then": [{"type": "predicate", "name": "may_enroll", "args": ["Chen"]}],
+            "warnings": [],
+        }
+        return {"choices": [{"message": {"content": json.dumps(frame)}}]}
+
+    client = OpenAICompatibleClient(_cfg(), transport=transport)
+    out = extract_premise_frame(client=client, premise_text=source_text, premise_id=6, repair_attempts=1)
+    assert calls["n"] == 2
+    assert out["frame"]["if"][0]["type"] == "numeric_condition"
+    assert out["frame"]["if"][0]["op"] == ">="
+    assert out["ast"]["node"]["if"]["op"] == ">="
+
+
+def test_live_smoke_validation_rejects_threshold_equality_ast() -> None:
+    source_text = "If Chen has GPA at least 6.5 then Chen may enroll."
+    result = {
+        "frame": {
+            "kind": "rule",
+            "source_id": "premise_0006",
+            "source_text": source_text,
+            "premise_id": 6,
+            "if": [{"type": "numeric_value", "entity": "Chen", "attribute": "gpa", "value": 6.5}],
+            "then": [{"type": "predicate", "name": "may_enroll", "args": ["Chen"]}],
+            "warnings": [],
+        },
+        "ast": {
+            "metadata": {"source_id": "premise_0006", "source_text": source_text, "premise_id": 6},
+            "node": {
+                "type": "implies",
+                "if": {
+                    "type": "compare",
+                    "op": "=",
+                    "left": {"type": "num_ref", "entity": "Chen", "attribute": "gpa"},
+                    "right": {"type": "number", "value": 6.5},
+                },
+                "then": {"type": "pred", "name": "may_enroll", "args": ["Chen"]},
+            },
+            "warnings": [],
+        },
+        "events": [],
+    }
+    with pytest.raises(ParseFrameExtractionError, match="threshold semantic validation failed"):
+        validate_live_parse_frame_result(result, source_text)
 
 
 def test_extractor_repair_exhaustion() -> None:

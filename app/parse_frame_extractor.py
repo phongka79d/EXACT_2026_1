@@ -24,6 +24,7 @@ PREMISE_FRAME_SCHEMA = (
     "- Supported slot types: predicate, entity_relation, numeric_value, numeric_condition, and, or, not.\n"
     "- A numeric_condition slot must include entity, attribute, op, and value.\n"
     "- numeric_condition op must be exactly one of: =, !=, >, <, >=, <=. Use >= for at least/or higher and <= for at most/or lower.\n"
+    "- Numeric threshold requirements such as at least, higher than, no more than, within, before, or after must use numeric_condition, not numeric_value.\n"
     "- A numeric_value slot must include entity, attribute, and value.\n"
     "- A predicate slot must include name and args.\n"
     "- Do not use kind values such as conditional, condition, implication, premise, or statement.\n"
@@ -38,10 +39,19 @@ CANDIDATE_FRAME_SCHEMA = (
     "- Supported slot types: predicate, entity_relation, numeric_value, numeric_condition, and, or, not.\n"
     "- A numeric_condition slot must include entity, attribute, op, and value.\n"
     "- numeric_condition op must be exactly one of: =, !=, >, <, >=, <=. Use >= for at least/or higher and <= for at most/or lower.\n"
+    "- Numeric threshold requirements such as at least, higher than, no more than, within, before, or after must use numeric_condition, not numeric_value.\n"
     "- A numeric_value slot must include entity, attribute, and value.\n"
     "- A predicate slot must include name and args.\n"
     "- Do not use kind values such as option, candidate, response, statement, or assertion.\n"
 )
+
+THRESHOLD_OPERATOR_TEXT = {
+    ">=": ("at least", "or higher", "minimum", "no less than"),
+    ">": ("greater than", "higher than", "more than", "above", "after"),
+    "<=": ("at most", "or lower", "maximum", "no more than", "within"),
+    "<": ("less than", "lower than", "fewer than", "below", "before"),
+    "=": ("exactly", "equal to", "equals"),
+}
 
 
 class ParseFrameExtractionError(RuntimeError):
@@ -138,6 +148,87 @@ def _extract_once(client: OpenAICompatibleClient, prompt: str) -> LLMResponse:
         raise ParseFrameExtractionError("llm_frame_error", str(exc)) from exc
 
 
+def expected_numeric_ops_for_text(text: str) -> frozenset[str]:
+    normalized = " ".join(text.lower().split())
+    expected: set[str] = set()
+    for op, phrases in THRESHOLD_OPERATOR_TEXT.items():
+        for phrase in phrases:
+            if phrase not in normalized:
+                continue
+            if phrase == "more than" and "no more than" in normalized:
+                continue
+            expected.add(op)
+            break
+    return frozenset(expected)
+
+
+def validate_threshold_semantics(result: Dict[str, Any], source_text: str) -> Dict[str, Any]:
+    expected_ops = expected_numeric_ops_for_text(source_text)
+    if not expected_ops:
+        return result
+
+    frame = result.get("frame")
+    ast = result.get("ast")
+    if not isinstance(frame, dict) or not isinstance(ast, dict):
+        raise ParseFrameExtractionError("frame_validation_error", "threshold semantic validation failed: missing frame or AST")
+
+    _validate_threshold_frame_semantics(frame, source_text)
+
+    ast_ops = {
+        str(node.get("op"))
+        for node in _iter_ast_nodes(ast.get("node"))
+        if isinstance(node, dict) and node.get("type") == "compare"
+    }
+    if not ast_ops.intersection(expected_ops):
+        allowed = ", ".join(sorted(expected_ops))
+        raise ParseFrameExtractionError(
+            "frame_validation_error",
+            f"threshold semantic validation failed: compiled AST must include compare op one of: {allowed}",
+        )
+    return result
+
+
+def _validate_threshold_frame_semantics(frame: Dict[str, Any], source_text: str) -> None:
+    expected_ops = expected_numeric_ops_for_text(source_text)
+    if not expected_ops:
+        return
+
+    frame_ops = {
+        str(slot.get("op"))
+        for slot in _iter_frame_slots(frame)
+        if isinstance(slot, dict) and slot.get("type") == "numeric_condition"
+    }
+    if not frame_ops.intersection(expected_ops):
+        allowed = ", ".join(sorted(expected_ops))
+        raise ParseFrameExtractionError(
+            "frame_validation_error",
+            f"threshold semantic validation failed: numeric threshold requirements must use numeric_condition with op one of: {allowed}",
+        )
+
+
+def _iter_frame_slots(value: Any):
+    if isinstance(value, dict):
+        if isinstance(value.get("type"), str):
+            yield value
+        for key in ("if", "then", "facts", "claim", "operands", "values", "value"):
+            if key in value:
+                yield from _iter_frame_slots(value[key])
+    elif isinstance(value, list):
+        for item in value:
+            yield from _iter_frame_slots(item)
+
+
+def _iter_ast_nodes(value: Any):
+    if isinstance(value, dict):
+        yield value
+        for key in ("if", "then", "value", "values", "operands", "body", "left", "right"):
+            if key in value:
+                yield from _iter_ast_nodes(value[key])
+    elif isinstance(value, list):
+        for item in value:
+            yield from _iter_ast_nodes(item)
+
+
 def _validate_extraction_context(frame: Dict[str, Any], context: Optional[ExtractionContext]) -> None:
     if context is None:
         return
@@ -161,6 +252,8 @@ def _validate_extraction_context(frame: Dict[str, Any], context: Optional[Extrac
             raise ParseFrameExtractionError("frame_validation_error", "frame candidate_label does not match extraction context")
         if "premise_id" in frame:
             raise ParseFrameExtractionError("frame_validation_error", "candidate frame must not include premise_id")
+
+    _validate_threshold_frame_semantics(frame, context.source_text)
 
 
 def extract_frame_with_repair(

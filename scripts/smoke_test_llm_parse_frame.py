@@ -12,8 +12,12 @@ if str(ROOT) not in sys.path:
 from app.config import ConfigError, load_llm_config
 from app.frame_artifacts import write_frame_events_jsonl
 from app.llm_client import OpenAICompatibleClient
-from app.parse_frame_extractor import extract_premise_frame
+from app.parse_frame_extractor import extract_premise_frame, validate_threshold_semantics
 from app.redaction import redact_obj
+
+
+def validate_live_parse_frame_result(result, premise_text: str):
+    return validate_threshold_semantics(result, premise_text)
 
 
 def main() -> int:
@@ -43,6 +47,13 @@ def main() -> int:
             repair_attempts=2,
         )
     except Exception as exc:
+        print(json.dumps({"status": "failed", "reason": str(exc)}))
+        return 1
+
+    try:
+        validate_live_parse_frame_result(result, args.premise_text)
+    except Exception as exc:
+        write_frame_events_jsonl(args.artifacts, result.get("events", []))
         print(json.dumps({"status": "failed", "reason": str(exc)}))
         return 1
 

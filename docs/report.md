@@ -407,6 +407,59 @@
 ### Final Status
 - ACCEPTED_READY_FOR_REVIEW
 
+## Batch 5 Numeric Threshold Repair Result
+
+### Summary
+- Strengthened Batch 5 live parser validation so threshold phrases such as `at least` cannot pass as `numeric_value` equality.
+- Added extractor-side threshold semantic validation before compile acceptance and live-smoke-side AST semantic validation after extraction.
+- Added regression tests for repairing a threshold rule from `numeric_value` into `numeric_condition` with the correct comparison operator.
+
+### Root Cause
+- The previous live smoke only checked `frame_kind` and `source_id`, so a live rule parse could pass while encoding `GPA at least 7.0` as a numeric fact/equality.
+- The extractor context validation checked frame kind and metadata but did not validate numeric threshold slot semantics against threshold cue text.
+
+### Files Changed
+- `app/parse_frame_extractor.py`
+- `scripts/smoke_test_llm_parse_frame.py`
+- `tests/test_batch5_extractor.py`
+- `docs/report.md`
+
+### Anti-Overfit Check
+- The semantic guard is cue/operator based and applies to threshold phrases generally, not to `premise_0001` or a specific smoke string.
+- Tests use a separate threshold premise (`Chen has GPA at least 6.5`) to verify repair behavior.
+- The live smoke now validates the compiled AST operator, so copying a frame kind/source ID is insufficient.
+
+### Validation Commands Run
+- `pytest -q tests\test_batch5_extractor.py` -> Passed (`13 passed`, pytest cache permission warning only).
+- `python scripts\smoke_test_llm_connectivity.py --dotenv .env` -> Passed.
+- `python scripts\smoke_test_llm_parse_frame.py --dotenv .env` -> Passed; artifact confirms `numeric_condition` with `op: ">="` and compiled AST `compare op: ">="`.
+- `python scripts\smoke_test_llm_parse_frame.py --dotenv .env --premise-id 2 --premise-text "Linh has GPA 8.1."` -> Passed (`frame_kind=fact`, `source_id=premise_0002`).
+- `pytest -q tests` -> Passed (`43 passed`, pytest cache permission warning only).
+
+### Live LLM Validation
+- Live LLM validation through `.env` passed.
+- The default threshold smoke now validates semantic slot shape and compiled AST comparison operator.
+
+### Tests
+- Full suite passed: `43 passed`.
+- New tests cover threshold repair from `numeric_value` to `numeric_condition >=` and live smoke rejection of threshold equality ASTs.
+
+### Runtime Artifacts
+- `artifacts/frame_events.jsonl` was appended by live smoke runs and now includes the corrected default threshold parse with `op: ">="`.
+
+### Remaining Issues
+- None for Batch 5 acceptance.
+- Workspace pytest cache permission warnings persist but do not affect functional validation.
+
+### Task Progress Update
+- `docs/task.md` was not modified; Batch 5 task state was already complete.
+
+### Report Update
+- Appended this numeric threshold repair report to `docs/report.md`.
+
+### Final Status
+- ACCEPTED_READY_FOR_REVIEW
+
 ## Batch 5 Repair Follow-Up Result
 
 ### Summary
