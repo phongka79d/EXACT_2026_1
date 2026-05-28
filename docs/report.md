@@ -148,3 +148,65 @@
 ### Notes for Next Batch
 - Batch 3 can consume `data/processed/Logic_Based_Educational_Queries.flattened.json` and `sanitize_runtime_sample` for runtime-safe candidate extraction input.
 - Batch 3 should reuse `extract_mcq_options` for canonical inline option extraction and preserve QC tags as diagnostic-only metadata.
+
+## Batch 3 Execution Result
+
+### Completed Tasks
+- B3-T1: complete
+- B3-T2: complete
+- B3-T3: complete
+- B3-T4: complete
+- B3-T5: complete
+
+### Files Created or Modified
+- Created: `app/candidate_extraction.py`
+- Created: `tests/test_candidate_extraction.py`
+- Modified: `docs/task.md`
+- Modified: `docs/report.md`
+
+### Tests or Validations Run
+- `pytest -q tests/test_candidate_extraction.py` -> Passed (`7 passed`, 1 cache warning).
+- `pytest -q tests/test_dataset.py tests/test_config.py tests/test_redaction.py tests/test_llm_client.py` -> Passed (`17 passed`, 1 cache warning).
+
+### Acceptance Criteria Check
+- MCQ candidates are ordered and label-stable: satisfied.
+- Yes/No/Unknown claim extraction path exists and returns one claim candidate for verification + explicit-negation-ready metadata: satisfied.
+- Open-ended classification and best-effort candidate envelope implemented: satisfied.
+- Symbolic/FOL-like option text is preserved without semantic rewriting: satisfied.
+- Candidate extraction debug summaries include family, count, labels, warnings, and extraction errors: satisfied.
+- Runtime extraction does not use answer labels or other reference-only fields: satisfied.
+
+### Artifacts Produced
+- Candidate extraction/classification module with debug summaries: `app/candidate_extraction.py`.
+- Focused Batch 3 tests and fixtures: `tests/test_candidate_extraction.py`.
+
+### Checklist or Progress Update
+- Updated `docs/task.md` checkboxes only for B3-T1..B3-T5 from `[ ]` to `[x]`.
+
+### Relevant Evidence Used
+- `docs/Plan.md`: runtime input boundary (`premises-NL` + `question` only), CR-003, and Unknown/open-ended policy constraints.
+- `docs/flow.md`: candidate extraction path and family handling (`MCQ`, `Yes/No/Unknown`, open-ended), plus debug trace requirements for candidate extraction status/warnings/errors.
+- `docs/task.md`: Batch 3 scope, task IDs B3-T1..B3-T5, validation expectations, and non-goals.
+- `docs/report_past.md`: answer-family distribution and symbolic/MCQ evidence, including record-333-style symbolic options and Unknown prevalence.
+- `docs/dataset_answer.md`: Batch 2 `choices` canonicalization context (record-132 style), consumed through normalized question text only.
+
+### Key Implementation Decisions
+- Added a dedicated Batch 3 module (`app/candidate_extraction.py`) instead of expanding Batch 2 data module boundaries.
+- Implemented MCQ extraction with multiline option support and strict canonical A->D ordering in question text.
+- Kept symbolic option payloads as text-preserving candidates (including operators/tokens) for later parse-frame handling.
+- Implemented a deterministic question-family classifier (`mcq`, `yes_no_unknown`, `open_ended`) based on runtime-safe question text only.
+- Added explicit debug summary payload with stage-attributed extraction errors (`candidate_extraction_error`) and sanitized warnings.
+
+### Risks or Open Issues
+- Yes/No claim text derivation is heuristic and may require refinement once parse-frame schema/AST contracts (Batch 4) are enforced against broader fixtures.
+- Pytest cache warning persists due workspace permission constraints; functional tests still pass.
+
+### Minor Issues Fixed During Execution
+- None.
+
+### Workflow Integrity Check
+- No sequencing or architecture conflict found. Batch 3 outputs align with Batch 4 dependency on stable candidate envelopes and family metadata.
+
+### Notes for Next Batch
+- Batch 4 can consume Batch 3 candidate envelopes (`label`, `candidate_label`, `text`, `source_text`) and `question_family` metadata to define strict parse-frame and AST contracts.
+- Next batch can proceed without additional blockers.

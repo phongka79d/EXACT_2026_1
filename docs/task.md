@@ -268,31 +268,31 @@ Extract candidate claims from normalized questions and classify each sample as M
 - `docs/report_past.md:31`: symbolic/FOL-like question text and options.
 
 #### Tasks
-* [ ] B3-T1: Implement inline MCQ option extraction from canonical `A./B./C./D.` question text.
+* [x] B3-T1: Implement inline MCQ option extraction from canonical `A./B./C./D.` question text.
   * expected files: candidate extraction module and tests.
   * expected behavior: returns ordered candidate labels and option text without relying on ground-truth answer.
   * validation: tests for standard inline options, multiline options, and symbolic options.
   * source requirement: `docs/flow.md:475`, `docs/report_past.md:22`.
   * notes: input should be the already-normalized question from Batch 2.
-* [ ] B3-T2: Implement Yes/No/Unknown claim extraction path.
+* [x] B3-T2: Implement Yes/No/Unknown claim extraction path.
   * expected files: candidate extraction module and tests.
   * expected behavior: returns one candidate claim for verification and supports later checking of claim and explicit negation.
   * validation: tests for yes/no question wording and insufficient-evidence samples.
   * source requirement: `docs/flow.md:483`, `docs/flow.md:574`.
   * notes: do not decide the answer in this batch.
-* [ ] B3-T3: Implement open-ended classification and best-effort candidate envelope.
+* [x] B3-T3: Implement open-ended classification and best-effort candidate envelope.
   * expected files: question classification module and tests.
   * expected behavior: identifies open-ended questions and records that later stages must synthesize only from proof-trace facts or return Unknown.
   * validation: classification tests using representative prompts.
   * source requirement: `docs/flow.md:489`.
   * notes: open-ended answer generation remains later-batch work.
-* [ ] B3-T4: Add symbolic-token-aware candidate preservation.
+* [x] B3-T4: Add symbolic-token-aware candidate preservation.
   * expected files: extraction tests and tokenizer/normalization helper if needed.
   * expected behavior: FOL-like option text containing symbols or ASCII equivalents remains intact for later parsing.
   * validation: regression for `record=333,q=0` style symbolic options.
   * source requirement: `docs/report_past.md:52`, `docs/report_past.md:114`.
   * notes: do not rewrite symbols into unsupported semantics.
-* [ ] B3-T5: Emit candidate extraction debug summaries.
+* [x] B3-T5: Emit candidate extraction debug summaries.
   * expected files: debug trace schema/helper and tests.
   * expected behavior: records question family, candidate count, labels, warnings, and extraction errors in sanitized form.
   * validation: debug trace unit tests.
